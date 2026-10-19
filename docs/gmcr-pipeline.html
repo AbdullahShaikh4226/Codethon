@@ -1,0 +1,606 @@
+<title>GMCR Predictive Engine</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: sticky stage index on the left, one reading column on the right; stacks to one column under 960px */
+:root {
+  --bg: #F5F7FA; --surface: #FFFFFF; --ink: #16202E; --muted: #5A6577; --line: #DCE1E8;
+  --accent: #2448A6; --accent-soft: #E6ECF8;
+  --friction: #A9560C; --friction-soft: #FBEEDF;
+  --threat: #B3263A; --threat-soft: #F9E5E8;
+  --ok: #1F7A4D; --code-bg: #EEF1F5;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F141B; --surface: #161D27; --ink: #E4E9F0; --muted: #97A3B4; --line: #2A3443;
+    --accent: #8AA8F4; --accent-soft: #1C2A47;
+    --friction: #F0A050; --friction-soft: #3A2814;
+    --threat: #F07384; --threat-soft: #3D1A21;
+    --ok: #5CC992; --code-bg: #111821;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F141B; --surface: #161D27; --ink: #E4E9F0; --muted: #97A3B4; --line: #2A3443;
+  --accent: #8AA8F4; --accent-soft: #1C2A47;
+  --friction: #F0A050; --friction-soft: #3A2814;
+  --threat: #F07384; --threat-soft: #3D1A21;
+  --ok: #5CC992; --code-bg: #111821;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 16px/1.6 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+}
+a { color: var(--accent); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h2 { font-size: 1.6rem; font-weight: 700; font-stretch: 85%; }
+h3 { font-size: 1.1rem; font-weight: 650; margin-top: 8px; }
+p { margin: 0; max-width: 68ch; }
+code, pre, .mono { font-family: var(--mono); font-size: 0.86em; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 16px; margin: 0; overflow-x: auto; line-height: 1.5; font-size: 0.82rem;
+}
+.label { font: 600 0.72rem/1 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+.wrap { max-width: 1180px; margin: 0 auto; }
+
+/* Header */
+header.top { padding-block: 48px 32px; border-bottom: 1px solid var(--line); display: grid; gap: 16px; }
+header.top h1 { font-size: clamp(2.2rem, 6vw, 3.6rem); font-weight: 800; font-stretch: 75%; letter-spacing: -0.01em; }
+header.top .sub { font-size: 1.1rem; color: var(--muted); max-width: 60ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 0.78rem/1 var(--body); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+
+/* Equation band */
+.equation {
+  margin-top: 8px; display: grid; gap: 14px; padding: 20px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line);
+}
+.eq-line { font-family: var(--display); font-stretch: 85%; font-size: clamp(1.15rem, 3vw, 1.6rem); font-weight: 650; display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.eq-line .phys { color: var(--accent); }
+.eq-line .fric { color: var(--friction); }
+.eq-line .op { color: var(--muted); font-weight: 500; }
+.bar { display: flex; height: 38px; border-radius: 6px; overflow: hidden; font: 500 0.8rem/1 var(--mono); }
+.bar > div { display: flex; align-items: center; padding: 0 10px; white-space: nowrap; overflow: hidden; }
+.bar .b-phys { background: var(--accent-soft); color: var(--accent); border-right: 2px solid var(--surface); }
+.bar .b-fric { background: var(--friction-soft); color: var(--friction); }
+.scale { display: flex; justify-content: space-between; font: 0.72rem/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.note { font-size: 0.82rem; color: var(--muted); }
+
+/* Layout */
+.layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; padding-top: 40px; }
+nav.index { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; display: grid; gap: 4px; }
+nav.index a { display: grid; grid-template-columns: 28px 1fr; gap: 6px; text-decoration: none; color: var(--muted); font-size: 0.86rem; padding: 4px 6px; border-radius: 4px; }
+nav.index a:hover { color: var(--ink); background: var(--surface); }
+nav.index a span:first-child { font-family: var(--mono); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+nav.index .grp { margin-top: 12px; margin-bottom: 4px; }
+main { display: grid; gap: 56px; min-width: 0; }
+section { display: grid; gap: 16px; min-width: 0; scroll-margin-top: 24px; }
+.stage-head { display: grid; gap: 6px; }
+.stage-head .label b { color: var(--accent); font-weight: 600; }
+
+/* Tables */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 0.74rem/1.3 var(--body); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.chosen td { background: var(--accent-soft); }
+
+/* Callouts */
+.callout { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--surface); padding: 14px 16px; border-radius: 0 8px 8px 0; display: grid; gap: 6px; }
+.callout.warn { border-left-color: var(--friction); }
+.callout.threat { border-left-color: var(--threat); }
+.callout p { max-width: none; }
+
+/* Stage map */
+.map { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.map a { display: grid; gap: 4px; padding: 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+.map a:hover { border-color: var(--accent); }
+.map .n { font: 500 0.75rem/1 var(--mono); color: var(--muted); }
+.map .t { font-weight: 600; font-size: 0.92rem; }
+.map .o { font-size: 0.8rem; color: var(--muted); }
+.phase { font: 600 0.66rem/1 var(--body); letter-spacing: 0.08em; text-transform: uppercase; justify-self: start; padding: 3px 6px; border-radius: 3px; }
+.phase.off { background: var(--accent-soft); color: var(--accent); }
+.phase.on { background: var(--friction-soft); color: var(--friction); }
+.phase.both { background: var(--code-bg); color: var(--muted); }
+
+.diagram { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+.diagram pre.mermaid { background: none; border: 0; padding: 0; font-family: var(--body); }
+
+.scen { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.scen > div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; }
+.scen .sev { font: 600 0.7rem/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; }
+.scen .lo { color: var(--ok); } .scen .mid { color: var(--friction); } .scen .hi { color: var(--threat); }
+.scen p { font-size: 0.88rem; color: var(--muted); }
+
+ol.steps { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; max-width: 70ch; }
+ul.plain { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; max-width: 70ch; }
+
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+details summary { cursor: pointer; padding: 10px 14px; font-weight: 600; font-size: 0.9rem; }
+details pre { border: 0; border-top: 1px solid var(--line); border-radius: 0 0 8px 8px; }
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  nav.index { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="label">Codethon · AI in cybersecurity and digital safety · Pipeline design</div>
+    <h1>GMCR Predictive Engine</h1>
+    <p class="sub">Global Multi-Cloud Recovery. A model that forecasts how long a cloud workload takes to recover after an outage or cyber-attack, shows how much of that time is wasted, explains why, and prices the downtime.</p>
+    <div class="chips">
+      <span class="chip">Gradient Boosting (P50 + P90)</span>
+      <span class="chip">Physics-informed residual target</span>
+      <span class="chip">SHAP TreeExplainer</span>
+      <span class="chip">NIST CSF: Recover</span>
+      <span class="chip">Streamlit dashboard</span>
+    </div>
+
+    <div class="equation" aria-label="Core equation with worked example">
+      <div class="eq-line">
+        <span>Forecast RTO</span><span class="op">=</span>
+        <span class="phys">physics baseline</span><span class="op">+</span>
+        <span class="fric">cloud friction</span>
+      </div>
+      <div class="bar" role="img" aria-label="Illustrative example: 85.3 minutes physics baseline plus 126.7 minutes friction equals 212 minutes">
+        <div class="b-phys" style="width:40.2%">85.3 min</div>
+        <div class="b-fric" style="width:59.8%">126.7 min friction</div>
+      </div>
+      <div class="scale"><span>0</span><span>106 min</span><span>212 min</span></div>
+      <p class="note">Illustrative example: 500 GB VM at 100 MB/s, ransomware scenario. Physics says 85 minutes. The forecast says 212, and 60% of that outage is friction.</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="index" aria-label="Stages">
+      <div class="label grp">Overview</div>
+      <a href="#why"><span>·</span><span>Why it is security</span></a>
+      <a href="#flow"><span>·</span><span>Pipeline at a glance</span></a>
+      <div class="label grp">Offline</div>
+      <a href="#s1"><span>01</span><span>Data sources</span></a>
+      <a href="#s2"><span>02</span><span>Cleaning</span></a>
+      <a href="#s3"><span>03</span><span>Features + baseline</span></a>
+      <a href="#s4"><span>04</span><span>Model selection</span></a>
+      <a href="#s5"><span>05</span><span>Training + artifacts</span></a>
+      <div class="label grp">Online</div>
+      <a href="#s6"><span>06</span><span>Live inference</span></a>
+      <a href="#s7"><span>07</span><span>Cloud friction</span></a>
+      <a href="#s8"><span>08</span><span>Scalability</span></a>
+      <a href="#s9"><span>09</span><span>Explainability</span></a>
+      <a href="#s10"><span>10</span><span>Threats + cost</span></a>
+      <a href="#s11"><span>11</span><span>Serving + retraining</span></a>
+      <div class="label grp">Delivery</div>
+      <a href="#build"><span>·</span><span>Repo + build order</span></a>
+      <a href="#demo"><span>·</span><span>Demo script</span></a>
+      <a href="#qa"><span>·</span><span>Judge questions</span></a>
+    </nav>
+
+    <main>
+      <section id="why">
+        <div class="stage-head">
+          <div class="label">Overview</div>
+          <h2>Why this is a cybersecurity project</h2>
+        </div>
+        <p>On its own, a recovery-time predictor is a disaster-recovery tool, and most outages are not attacks. Two additions put it inside the theme.</p>
+        <div class="scen">
+          <div>
+            <div class="sev hi">Threat-aware recovery</div>
+            <p>Incident type (hardware, misconfiguration, ransomware, wiper) is a model input. Attack recovery adds isolation, forensic scanning, a search for a clean restore point and re-imaging. That is where friction is worst.</p>
+          </div>
+          <div>
+            <div class="sev mid">Breach impact in dollars</div>
+            <p>A cost model turns RTO and friction into downtime cost, avoidable friction cost and data-loss cost, so the forecast supports a security budget decision.</p>
+          </div>
+          <div>
+            <div class="sev lo">NIST CSF: Recover</div>
+            <p>Maps to recovery plan execution (RC.RP). Detection tools stop the attack. GMCR tells you how bad the aftermath will be, and what to fix before it happens.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="flow">
+        <div class="stage-head">
+          <div class="label">Overview</div>
+          <h2>Pipeline at a glance</h2>
+        </div>
+        <p>Training runs offline once and again when accuracy drifts. Inference runs on every request and feeds four outputs into one dashboard. DR drill results flow back as new training data.</p>
+        <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph OFFLINE["Offline: training"]
+    A["Recovery logs + synthetic generator"] --> B["Clean and validate"]
+    B --> C["Features + physics baseline"]
+    C --> D["Compare 4 models, 5-fold CV"]
+    D --> E[("P50 + P90 pipelines, model card")]
+  end
+  subgraph ONLINE["Online: inference"]
+    U["Workload + incident scenario"] --> V["Validate input"]
+    V --> W["Physics baseline"]
+    W --> X["Model predicts friction"]
+    X --> Y["RTO = baseline + friction"]
+    Y --> F["Friction report"]
+    Y --> S["Scalability sweep"]
+    Y --> H["SHAP explanation"]
+    Y --> K["Cost of downtime"]
+  end
+  E --> X
+  F --> DASH["Streamlit dashboard"]
+  S --> DASH
+  H --> DASH
+  K --> DASH
+  DASH -. "DR drill actuals" .-> A
+</pre>
+        </div>
+        <div class="map">
+          <a href="#s1"><span class="n">01</span><span class="t">Data sources</span><span class="o">recoveries.csv</span><span class="phase off">Offline</span></a>
+          <a href="#s2"><span class="n">02</span><span class="t">Cleaning</span><span class="o">Clean training table</span><span class="phase off">Offline</span></a>
+          <a href="#s3"><span class="n">03</span><span class="t">Features + baseline</span><span class="o">Feature matrix, baseline_min</span><span class="phase both">Both</span></a>
+          <a href="#s4"><span class="n">04</span><span class="t">Model selection</span><span class="o">CV scores, chosen model</span><span class="phase off">Offline</span></a>
+          <a href="#s5"><span class="n">05</span><span class="t">Training + artifacts</span><span class="o">2 pipelines + model card</span><span class="phase off">Offline</span></a>
+          <a href="#s6"><span class="n">06</span><span class="t">Live inference</span><span class="o">RTO P50 / P90</span><span class="phase on">Online</span></a>
+          <a href="#s7"><span class="n">07</span><span class="t">Cloud friction</span><span class="o">Minutes, %, dollars</span><span class="phase on">Online</span></a>
+          <a href="#s8"><span class="n">08</span><span class="t">Scalability</span><span class="o">Curve + SLA breach point</span><span class="phase on">Online</span></a>
+          <a href="#s9"><span class="n">09</span><span class="t">Explainability</span><span class="o">Importance + SHAP</span><span class="phase on">Online</span></a>
+          <a href="#s10"><span class="n">10</span><span class="t">Threats + cost</span><span class="o">Dollar impact per scenario</span><span class="phase on">Online</span></a>
+          <a href="#s11"><span class="n">11</span><span class="t">Serving + retraining</span><span class="o">Dashboard, drift alerts</span><span class="phase both">Both</span></a>
+        </div>
+      </section>
+
+      <section id="s1">
+        <div class="stage-head">
+          <div class="label"><b>Stage 01</b> · Offline</div>
+          <h2>Data sources</h2>
+        </div>
+        <div class="tbl"><table>
+          <thead><tr><th>Source</th><th>What it gives us</th></tr></thead>
+          <tbody>
+            <tr><td>AWS Backup / Elastic Disaster Recovery logs</td><td>Restore start, end, bytes, region</td></tr>
+            <tr><td>Azure Site Recovery job history</td><td>Failover duration, VM size, target tier</td></tr>
+            <tr><td>GCP Backup and DR reports</td><td>Restore duration, storage class</td></tr>
+            <tr><td>Incident tickets (Jira, ServiceNow)</td><td>Incident type, isolation and forensics time</td></tr>
+            <tr><td>DR drill records</td><td>Ground-truth RTO under controlled conditions</td></tr>
+          </tbody>
+        </table></div>
+        <h3>Hackathon source: a synthetic generator</h3>
+        <p>Labelled recovery data, ransomware recoveries above all, is rare and private. The generator starts from the physics baseline and adds named friction terms: disk hydration by tier, storage type, API throttling, handshake latency, concurrency overhead, a cross-region penalty, fixed and per-GB attack-recovery overhead, and log-normal noise. 20,000 rows from 10 GB to 5000 GB.</p>
+        <div class="callout warn">
+          <span class="label">Say this to judges up front</span>
+          <p>On synthetic data the model learns the generator. What we demonstrate is the pipeline: feed it real DR drill logs and nothing else changes. The friction constants are written down so they can be challenged and replaced.</p>
+        </div>
+        <details>
+          <summary>data/generate.py</summary>
+<pre>TIERS = {"hdd": 1.6, "ssd": 1.15, "premium_ssd": 1.0}        # hydration multiplier
+STORAGE = {"object": 1.3, "block": 1.0, "file": 1.2}
+INCIDENT_OVERHEAD = {                                         # (fixed min, per-GB min)
+    "hardware": (5, 0.000), "misconfig": (15, 0.000),
+    "ransomware": (120, 0.020), "wiper": (180, 0.030),
+}
+
+base = df.vm_size_gb * 1024 / df.throughput_mb_s / 60
+fixed, per_gb = zip(*df.incident_type.map(INCIDENT_OVERHEAD))
+rto = (
+    base * df.disk_tier.map(TIERS) * df.target_storage_type.map(STORAGE)
+    * (1 + df.api_throttle_rate)                                  # throttling
+    + df.network_latency_ms * 0.05                                # handshakes / API RTT
+    + np.log1p(df.concurrency) * 2                                # coordination overhead
+    + (df.source_region != df.target_region) * 10                 # cross-region
+    + np.array(fixed) + np.array(per_gb) * df.vm_size_gb          # attack recovery steps
+) * rng.lognormal(0, 0.1, n)                                      # noise</pre>
+        </details>
+      </section>
+
+      <section id="s2">
+        <div class="stage-head">
+          <div class="label"><b>Stage 02</b> · Offline</div>
+          <h2>Cleaning and validation</h2>
+        </div>
+        <div class="tbl"><table>
+          <thead><tr><th>Step</th><th>Rule</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>Drop duplicates</td><td>Same job ID seen twice</td><td>Log replays</td></tr>
+            <tr><td>Drop impossible rows</td><td><code>actual_rto_min &lt; 0.9 × baseline_min</code></td><td>Faster than physics allows means a logging error</td></tr>
+            <tr><td>Drop missing target</td><td><code>actual_rto_min</code> is null</td><td>Cannot train on it</td></tr>
+            <tr><td>Outlier removal</td><td>IQR rule <strong>within each incident type</strong></td><td>A global IQR would delete the ransomware rows, the signal we care about most</td></tr>
+            <tr><td>Schema check</td><td>Types, ranges, allowed categories</td><td>Fail loudly, not silently</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="s3">
+        <div class="stage-head">
+          <div class="label"><b>Stage 03</b> · Offline + online</div>
+          <h2>Features and the physics baseline</h2>
+        </div>
+        <pre>baseline_min = (vm_size_gb × 1024) / throughput_mb_s / 60</pre>
+        <p>Size in GB, throughput in MB/s (megabytes). A source that reports Mbps (megabits) is divided by 8 first. Check: 500 GB at 100 MB/s gives 500 × 1024 / 100 / 60 = <strong>85.3 minutes</strong>.</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Feature</th><th>Type</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>vm_size_gb</code></td><td>numeric</td><td>10 to 5000</td></tr>
+            <tr><td><code>throughput_mb_s</code></td><td>numeric</td><td>Effective restore throughput</td></tr>
+            <tr><td><code>concurrency</code></td><td>numeric</td><td>Parallel restore streams</td></tr>
+            <tr><td><code>network_latency_ms</code></td><td>numeric</td><td>Source to target round trip</td></tr>
+            <tr><td><code>api_throttle_rate</code></td><td>numeric</td><td>Share of API calls throttled, 0 to 1</td></tr>
+            <tr><td><code>clean_snapshot_age_h</code></td><td>numeric</td><td>Age of the newest known-clean backup</td></tr>
+            <tr><td><code>disk_tier</code></td><td>categorical</td><td>hdd, ssd, premium_ssd</td></tr>
+            <tr><td><code>target_storage_type</code></td><td>categorical</td><td>object, block, file</td></tr>
+            <tr><td><code>source_region</code>, <code>target_region</code></td><td>categorical</td><td>Plus derived <code>cross_region</code> flag</td></tr>
+            <tr><td><code>incident_type</code></td><td>categorical</td><td>hardware, misconfig, ransomware, wiper</td></tr>
+            <tr><td><code>baseline_min</code></td><td>derived</td><td>Physics baseline, also a model input</td></tr>
+          </tbody>
+        </table></div>
+        <div class="callout">
+          <span class="label">Design change from the original deck: predict friction, not RTO</span>
+          <p>The model learns <code>friction_min = actual_rto_min − baseline_min</code>, and the baseline is added back at prediction time. Tree models cannot extrapolate: past the largest VM in training, their output goes flat. With this target the physics part stays exact at any size, the 5000 GB sweep stays sensible, and the friction number comes straight from the model.</p>
+        </div>
+        <p>Preprocessing is one scikit-learn <code>Pipeline</code>: <code>StandardScaler</code> on numeric columns and <code>OneHotEncoder(handle_unknown="ignore")</code> on categories, saved together with the model so a mismatched scaler and model can never be loaded. Scaling does not change a tree model's output; it is there so the linear baseline in stage 04 shares the same preprocessing.</p>
+      </section>
+
+      <section id="s4">
+        <div class="stage-head">
+          <div class="label"><b>Stage 04</b> · Offline</div>
+          <h2>Model selection</h2>
+        </div>
+        <p>All four candidates use the same features and 5-fold cross-validation, scored on MAE (minutes, easy to explain), RMSE (punishes big misses) and R².</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Candidate</th><th>Strength</th><th>Weakness</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td>Physics formula</td><td>Exact in a vacuum</td><td>Ignores all friction</td><td>Floor to beat</td></tr>
+            <tr><td>Linear regression</td><td>Fast, readable</td><td>Misses feature interactions</td><td>Baseline model</td></tr>
+            <tr><td>Random forest</td><td>Robust to noisy data</td><td>Overfits small datasets, large files</td><td>Challenger</td></tr>
+            <tr class="chosen"><td><strong>Gradient Boosting</strong></td><td>Each round corrects the last round's errors; best accuracy on noisy tabular data</td><td>Needs tuning</td><td><strong>Chosen</strong></td></tr>
+          </tbody>
+        </table></div>
+        <p>Tuned with <code>RandomizedSearchCV</code>: <code>n_estimators</code> 200 to 800, <code>learning_rate</code> 0.02 to 0.2, <code>max_depth</code> 2 to 5, <code>subsample</code> 0.7 to 1.0, <code>min_samples_leaf</code> 5 to 50.</p>
+        <h3>Two models, not one</h3>
+        <p>A failover decision needs the worst realistic case. The <strong>P50</strong> model (<code>loss="squared_error"</code>) gives the likely RTO. The <strong>P90</strong> model (<code>loss="quantile", alpha=0.9</code>) gives the RTO we beat 9 times in 10. P90 is the value compared against the SLA.</p>
+      </section>
+
+      <section id="s5">
+        <div class="stage-head">
+          <div class="label"><b>Stage 05</b> · Offline</div>
+          <h2>Training and artifact generation</h2>
+        </div>
+        <div class="tbl"><table>
+          <thead><tr><th>Artifact</th><th>Contents</th></tr></thead>
+          <tbody>
+            <tr><td><code>models/gmcr_p50.joblib</code></td><td>Preprocessing and P50 model, one object</td></tr>
+            <tr><td><code>models/gmcr_p90.joblib</code></td><td>Preprocessing and P90 model, one object</td></tr>
+            <tr><td><code>models/model_card.json</code></td><td>Training date, rows, features, MAE, R², P90 coverage, training size range</td></tr>
+          </tbody>
+        </table></div>
+        <h3>Gate before an artifact ships</h3>
+        <ul class="plain">
+          <li>MAE beats the physics formula's MAE by a clear margin.</li>
+          <li>P90 coverage on the held-out set is between 0.85 and 0.95.</li>
+          <li>Held-out R² is shown on the dashboard, whatever it is.</li>
+        </ul>
+        <details>
+          <summary>gmcr/train.py</summary>
+<pre>df = add_features(clean(pd.read_csv("data/recoveries.csv")))
+X, y = df[NUM + CAT], df.actual_rto_min - df.baseline_min      # target = friction
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42,
+                                          stratify=df.incident_type)
+
+def make(**gbr):
+    pre = ColumnTransformer([("num", StandardScaler(), NUM),
+                             ("cat", OneHotEncoder(handle_unknown="ignore"), CAT)])
+    return Pipeline([("pre", pre), ("gbr", GradientBoostingRegressor(random_state=42, **gbr))])
+
+p50 = make(n_estimators=500, learning_rate=0.05, max_depth=4).fit(X_tr, y_tr)
+p90 = make(n_estimators=500, learning_rate=0.05, max_depth=4,
+           loss="quantile", alpha=0.9).fit(X_tr, y_tr)
+
+pred = p50.predict(X_te)
+card = {"rows": len(df), "features": NUM + CAT, "target": "friction_min",
+        "mae_min": round(mean_absolute_error(y_te, pred), 2),
+        "r2": round(r2_score(y_te, pred), 3),
+        "p90_coverage": round(float((y_te &lt;= p90.predict(X_te)).mean()), 3),
+        "train_size_range_gb": [float(X.vm_size_gb.min()), float(X.vm_size_gb.max())]}
+joblib.dump(p50, "models/gmcr_p50.joblib")
+joblib.dump(p90, "models/gmcr_p90.joblib")
+json.dump(card, open("models/model_card.json", "w"), indent=2)</pre>
+        </details>
+      </section>
+
+      <section id="s6">
+        <div class="stage-head">
+          <div class="label"><b>Stage 06</b> · Online</div>
+          <h2>Live inference</h2>
+        </div>
+        <ol class="steps">
+          <li>The user defines a <strong>workload vector</strong>: VM size, throughput, disk tier, storage type, regions, concurrency, latency, throttle rate, incident type, clean snapshot age.</li>
+          <li><strong>Validate</strong> at the boundary: positive sizes, throughput above 0, known categories. Warn when size falls outside the model card's training range.</li>
+          <li>Compute the <strong>physics baseline</strong>.</li>
+          <li>Run the vector through both pipelines to get friction at P50 and P90.</li>
+          <li>Return <strong>RTO = baseline + friction</strong> for each.</li>
+        </ol>
+<pre>def forecast(workload: dict) -&gt; dict:
+    df = add_features(pd.DataFrame([workload]))
+    base = float(df.baseline_min.iloc[0])
+    f50, f90 = float(P50.predict(df)[0]), float(P90.predict(df)[0])
+    return {"baseline_min": base,
+            "rto_p50_min": base + f50, "rto_p90_min": base + f90,
+            "friction_min": f50, "friction_pct": f50 / (base + f50)}</pre>
+      </section>
+
+      <section id="s7">
+        <div class="stage-head">
+          <div class="label"><b>Stage 07</b> · Online</div>
+          <h2>Cloud friction</h2>
+        </div>
+        <pre>cloud_friction = AI forecast − physics baseline</pre>
+        <p>The time lost purely to inefficiency and attack-recovery steps: throttling, TCP handshakes, API latency, disk hydration, cross-region hops, forensic isolation. Teams rarely see this number. It is reported three ways: <strong>minutes</strong>, <strong>share of the outage</strong>, and <strong>dollars</strong> (stage 10).</p>
+        <div class="callout warn">
+          <span class="label">Guard</span>
+          <p>Physics is a hard floor. If the model returns negative friction, show 0 and flag the input as out of distribution.</p>
+        </div>
+      </section>
+
+      <section id="s8">
+        <div class="stage-head">
+          <div class="label"><b>Stage 08</b> · Online</div>
+          <h2>Scalability projection</h2>
+        </div>
+        <p>Feed VM sizes from 10 GB to 5000 GB through the model, holding every other input at the user's values, and plot the RTO curve. The chart carries two findings.</p>
+        <ul class="plain">
+          <li><strong>SLA breach point</strong>: the first size where P90 RTO exceeds the RTO target. This is the tipping point where the current architecture stops meeting its promise.</li>
+          <li><strong>Friction share</strong>: if it climbs with size, the bottleneck is the platform, not bandwidth, and more bandwidth will not fix it.</li>
+        </ul>
+<pre>def sweep(workload, rto_target_min, sizes=np.linspace(10, 5000, 100)):
+    rows = [forecast({**workload, "vm_size_gb": s}) for s in sizes]
+    p90 = np.array([r["rto_p90_min"] for r in rows])
+    breach = sizes[np.argmax(p90 &gt; rto_target_min)] if (p90 &gt; rto_target_min).any() else None
+    return rows, breach</pre>
+        <p class="note">Shade any part of the curve outside the model card's training size range as "extrapolated".</p>
+      </section>
+
+      <section id="s9">
+        <div class="stage-head">
+          <div class="label"><b>Stage 09</b> · Online</div>
+          <h2>Explainability</h2>
+        </div>
+        <p>The model has to justify a failover decision, so it is never a black box.</p>
+        <div class="scen">
+          <div>
+            <div class="sev mid">Global</div>
+            <p><strong>Feature importance</strong> ranks what drives friction across all recoveries. Expected leaders: target storage type, region pair, concurrency, data volume, network latency, and incident type.</p>
+          </div>
+          <div>
+            <div class="sev mid">Local</div>
+            <p><strong>SHAP waterfall</strong> via <code>shap.TreeExplainer</code> shows how far each feature pushed one forecast's friction above or below the average.</p>
+          </div>
+        </div>
+        <p>Because the target is friction, SHAP explains the friction, which is the part a team can act on. Feature names come from <code>pre.get_feature_names_out()</code> so one-hot columns read as <code>cat__incident_type_ransomware</code>, not column 14.</p>
+      </section>
+
+      <section id="s10">
+        <div class="stage-head">
+          <div class="label"><b>Stage 10</b> · Online</div>
+          <h2>Threat scenarios and the cost model</h2>
+        </div>
+        <p>The same workload is forecast under every incident type, side by side.</p>
+        <div class="scen">
+          <div><div class="sev lo">Hardware fault</div><p>Failover only.</p></div>
+          <div><div class="sev mid">Misconfiguration</div><p>Diagnose, roll back config, fail over.</p></div>
+          <div><div class="sev hi">Ransomware</div><p>Isolate, forensic scan, find a clean restore point, re-image, restore. Recent backups may be encrypted too.</p></div>
+          <div><div class="sev hi">Wiper</div><p>All of the ransomware steps, plus a rebuild from older backups because recent ones are destroyed.</p></div>
+        </div>
+        <h3>Cost model</h3>
+        <p>All rates are user inputs. Nothing is hard-coded from industry averages.</p>
+<pre>downtime_cost  = rto_min / 60 × cost_per_hour
+friction_cost  = max(friction_min, 0) / 60 × cost_per_hour    # avoidable part of downtime
+data_loss_cost = clean_snapshot_age_h × data_value_per_hour   # RPO side
+sla_penalty    = penalty if rto_min &gt; rto_target_min else 0
+total          = downtime_cost + data_loss_cost + sla_penalty  # friction is inside downtime</pre>
+        <h3>Worked example</h3>
+        <div class="tbl"><table>
+          <thead><tr><th>Item</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>VM size, throughput</td><td class="num">500 GB, 100 MB/s</td></tr>
+            <tr><td>Scenario</td><td>Ransomware</td></tr>
+            <tr><td>Cost of downtime (user input)</td><td class="num">$20,000 / h</td></tr>
+            <tr><td>Physics baseline</td><td class="num">85.3 min</td></tr>
+            <tr><td>Forecast RTO (P50)</td><td class="num">212.0 min</td></tr>
+            <tr><td>Cloud friction</td><td class="num">126.7 min (60%)</td></tr>
+            <tr><td>Downtime cost</td><td class="num">$70,667</td></tr>
+            <tr><td><strong>Friction cost (avoidable)</strong></td><td class="num"><strong>$42,233</strong></td></tr>
+          </tbody>
+        </table></div>
+        <p class="note">Illustrative inputs, not model output. Replace with dashboard values on demo day.</p>
+      </section>
+
+      <section id="s11">
+        <div class="stage-head">
+          <div class="label"><b>Stage 11</b> · Offline + online</div>
+          <h2>Serving, monitoring and retraining</h2>
+        </div>
+        <p>One Streamlit app loads the artifacts once and has four tabs: <strong>Forecast</strong>, <strong>Scalability</strong>, <strong>Explain</strong>, <strong>Attack and cost</strong>. A REST API is not needed for the demo; add FastAPI only if another system must call the engine.</p>
+        <ul class="plain">
+          <li>Log every forecast with its inputs.</li>
+          <li>After each DR drill or real incident, store the actual RTO next to the forecast.</li>
+          <li>Retrain when rolling MAE drifts more than 25% above the model card MAE, or when a new region, tier or incident type appears.</li>
+          <li>Each retrain writes a new model card. Keep the previous artifacts for rollback.</li>
+        </ul>
+      </section>
+
+      <section id="build">
+        <div class="stage-head">
+          <div class="label">Delivery</div>
+          <h2>Repository layout and build order</h2>
+        </div>
+<pre>gmcr/
+├── data/generate.py        # stage 01
+├── gmcr/features.py        # stages 02–03: NUM, CAT, clean(), physics_baseline()
+├── gmcr/train.py           # stages 04–05
+├── gmcr/predict.py         # stages 06–08: forecast(), sweep()
+├── gmcr/explain.py         # stage 09
+├── gmcr/cost.py            # stage 10
+├── models/                 # gmcr_p50.joblib, gmcr_p90.joblib, model_card.json
+├── tests/test_core.py      # baseline = 85.3, no double-counted cost, RTO ≥ physics
+└── app.py                  # stage 11: Streamlit</pre>
+        <ol class="steps">
+          <li><code>features.py</code> and the baseline test.</li>
+          <li><code>generate.py</code>: 20,000 rows; plot RTO against size per incident type to sanity-check.</li>
+          <li><code>train.py</code>: print the four-model CV table, save artifacts and model card.</li>
+          <li><code>predict.py</code>: <code>forecast()</code> and <code>sweep()</code>.</li>
+          <li><code>explain.py</code>: SHAP waterfall for one sample.</li>
+          <li><code>cost.py</code> and its test.</li>
+          <li><code>app.py</code>: the four tabs, in order.</li>
+          <li>Rehearse the demo.</li>
+        </ol>
+      </section>
+
+      <section id="demo">
+        <div class="stage-head">
+          <div class="label">Delivery</div>
+          <h2>Demo script, three minutes</h2>
+        </div>
+        <ol class="steps">
+          <li><strong>The problem.</strong> "Your runbook says 85 minutes to restore this 500 GB server. That is the physics formula. It assumes a perfect vacuum."</li>
+          <li><strong>The forecast.</strong> Switch to ransomware. "GMCR says 212 minutes. 127 of them are friction. At $20,000 an hour, that friction costs $42,000."</li>
+          <li><strong>The why.</strong> Open the SHAP waterfall. "Object storage as the target and the cross-region hop drive most of it. Both are fixable."</li>
+          <li><strong>The future.</strong> Open the scalability tab. "At this size, the architecture breaks your 4-hour SLA. You know that today, before an attacker teaches you."</li>
+        </ol>
+      </section>
+
+      <section id="qa">
+        <div class="stage-head">
+          <div class="label">Delivery</div>
+          <h2>Questions judges will ask</h2>
+        </div>
+        <div class="tbl"><table>
+          <thead><tr><th>Question</th><th>Answer</th></tr></thead>
+          <tbody>
+            <tr><td>Is the data real?</td><td>Synthetic, from a documented generator. The pipeline trains on real DR logs unchanged.</td></tr>
+            <tr><td>Why Gradient Boosting?</td><td>Best accuracy on noisy tabular data in our CV table, fast, and SHAP has an exact tree explainer for it.</td></tr>
+            <tr><td>Trees cannot extrapolate. How does the sweep reach 5000 GB?</td><td>The model predicts friction only; the physics baseline carries the size scaling. The extrapolated region is marked.</td></tr>
+            <tr><td>Where is the security?</td><td>Incident type is a model input, attack recovery steps are modelled, and the output is breach cost. It covers the NIST CSF Recover function.</td></tr>
+            <tr><td>Why trust one number?</td><td>We show P50 and P90, the held-out MAE, and a SHAP breakdown for every forecast.</td></tr>
+          </tbody>
+        </table></div>
+        <p class="note">Full code for every stage is in <code>docs/GMCR_Pipeline.md</code>.</p>
+      </section>
+    </main>
+  </div>
+</div>

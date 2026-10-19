@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# The dashboard lives on the frontend branch; clone it into this folder.
+frontend/

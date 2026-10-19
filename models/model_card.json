@@ -1,0 +1,175 @@
+{
+  "aws": {
+    "platform": "aws",
+    "algorithm": "CatBoost",
+    "params": {
+      "iterations": 1000,
+      "depth": 4,
+      "learning_rate": 0.1
+    },
+    "features": [
+      "VM_Size_GB",
+      "Provisioned_IOPS",
+      "Snapshot_Age_Days",
+      "EBS_Volume_Type",
+      "Region"
+    ],
+    "p90_factor": 1.020239299100813,
+    "categories": {
+      "EBS_Volume_Type": [
+        "gp2",
+        "gp3",
+        "io2",
+        "st1"
+      ],
+      "Region": [
+        "eu-central-1",
+        "us-east-1",
+        "us-west-2"
+      ]
+    },
+    "numeric_range": {
+      "VM_Size_GB": [
+        51.0,
+        1996.0
+      ],
+      "Provisioned_IOPS": [
+        3000.0,
+        64000.0
+      ],
+      "Snapshot_Age_Days": [
+        1.0,
+        364.0
+      ]
+    },
+    "cv_scores": {
+      "mae_min": 1.776677731362953,
+      "rmse_min": 4.205407139233131,
+      "r2": 0.9991903617028199,
+      "median_error": 0.008756747710508134
+    },
+    "residual_center": 0.00022327846485081793,
+    "residual_scale": 0.01291224641761702,
+    "rows": 1000,
+    "trained_at": "2026-10-19T14:16:29"
+  },
+  "azure": {
+    "platform": "azure",
+    "algorithm": "CatBoost",
+    "params": {
+      "iterations": 1000,
+      "depth": 4,
+      "learning_rate": 0.05
+    },
+    "features": [
+      "VM_Size_GB",
+      "Network_Bandwidth_Mbps",
+      "Disk_Tier",
+      "Vault_Redundancy",
+      "Restore_Method",
+      "Region"
+    ],
+    "p90_factor": 1.0369923056260402,
+    "categories": {
+      "Disk_Tier": [
+        "Premium_SSD",
+        "Standard_HDD",
+        "Standard_SSD",
+        "Ultra"
+      ],
+      "Vault_Redundancy": [
+        "GRS",
+        "LRS",
+        "ZRS"
+      ],
+      "Restore_Method": [
+        "Instant",
+        "Vault"
+      ],
+      "Region": [
+        "East US",
+        "Southeast Asia",
+        "West Europe"
+      ]
+    },
+    "numeric_range": {
+      "VM_Size_GB": [
+        65.0,
+        4093.0
+      ],
+      "Network_Bandwidth_Mbps": [
+        1000.0,
+        10000.0
+      ]
+    },
+    "cv_scores": {
+      "mae_min": 5.6288559619333975,
+      "rmse_min": 25.080981587208825,
+      "r2": 0.9927706226053058,
+      "median_error": 0.015280991591966723
+    },
+    "residual_center": -0.005171486613232856,
+    "residual_scale": 0.02167546178092746,
+    "rows": 1000,
+    "trained_at": "2026-10-19T14:16:58"
+  },
+  "vmware": {
+    "platform": "vmware",
+    "algorithm": "CatBoost",
+    "params": {
+      "iterations": 1000,
+      "depth": 4,
+      "learning_rate": 0.1
+    },
+    "features": [
+      "VM_Size_GB",
+      "Network_Gbps",
+      "Concurrency_Level",
+      "Transport_Mode",
+      "Disk_Provisioning",
+      "Target_Storage"
+    ],
+    "p90_factor": 1.0374808696936795,
+    "categories": {
+      "Transport_Mode": [
+        "HotAdd",
+        "NBD",
+        "SAN"
+      ],
+      "Disk_Provisioning": [
+        "Thick-Eager",
+        "Thick-Lazy",
+        "Thin"
+      ],
+      "Target_Storage": [
+        "HDD",
+        "NVMe",
+        "SSD"
+      ]
+    },
+    "numeric_range": {
+      "VM_Size_GB": [
+        41.0,
+        2495.0
+      ],
+      "Network_Gbps": [
+        1.0,
+        25.0
+      ],
+      "Concurrency_Level": [
+        1.0,
+        5.0
+      ]
+    },
+    "cv_scores": {
+      "mae_min": 20.16277255250892,
+      "rmse_min": 110.42799232401985,
+      "r2": 0.9898875905766071,
+      "median_error": 0.013412826291570605
+    },
+    "residual_center": -4.147580673907747e-05,
+    "residual_scale": 0.019863038890849095,
+    "rows": 1000,
+    "trained_at": "2026-10-19T14:17:28"
+  }
+}

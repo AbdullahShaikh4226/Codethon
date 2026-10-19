@@ -1,0 +1,4 @@
+Provider,Input_Rows,Output_Rows,Input_Columns,Exact_Duplicate_Rows_Removed,Rows_With_Missing_Required_Values_Removed,Rows_With_Invalid_Nonpositive_Measurements_Removed,Numeric_Conversion_Failures,Restore_Time_IQR_Outliers_Flagged_Not_Removed,Restore_Time_Min,Restore_Time_Median,Restore_Time_Max
+VMware,1000,1000,8,0,0,0,0,99,6.13,370.65,11929.98
+Azure,1000,1000,8,0,0,0,0,63,2.14,90.62,2286.2
+AWS,1000,1000,7,0,0,0,0,73,12.5768,95.618267,874.96

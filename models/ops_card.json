@@ -1,0 +1,133 @@
+{
+  "failure_risk": {
+    "test_vms": 60,
+    "test_minutes": 161977,
+    "positive_rate": 0.01407607252881582,
+    "xgboost": {
+      "roc_auc": 0.8909390551998198,
+      "pr_auc": 0.6215055305574888
+    },
+    "logistic_baseline": {
+      "roc_auc": 0.8933835858455196,
+      "pr_auc": 0.5371499711641273
+    },
+    "at_elevated": {
+      "threshold": 0.2,
+      "failures_caught": "127/152",
+      "recall_incidents": 0.8355263157894737,
+      "median_lead_min": 14.0,
+      "false_alert_episodes_per_vm_day": 0.400056798187397
+    },
+    "at_high": {
+      "threshold": 0.5,
+      "failures_caught": "118/152",
+      "recall_incidents": 0.7763157894736842,
+      "median_lead_min": 11.0,
+      "false_alert_episodes_per_vm_day": 0.11557196392080357
+    },
+    "caught_by_cause_at_elevated": {
+      "app": 0.9166666666666666,
+      "disk_exhaustion": 1.0,
+      "host": 0.0,
+      "network": 1.0,
+      "os_crash": 0.875,
+      "security": 1.0,
+      "storage_io": 0.9583333333333334
+    }
+  },
+  "root_cause": {
+    "train_incidents": 328,
+    "test_incidents": 152,
+    "cv_on_train_vms": {
+      "accuracy": 0.9969512195121951,
+      "top2_accuracy": 1.0,
+      "macro_f1": 0.9961215255332903,
+      "recall_by_cause": {
+        "disk_exhaustion": 1.0,
+        "storage_io": 1.0,
+        "network": 1.0,
+        "host": 0.9696969696969697,
+        "os_crash": 1.0,
+        "app": 1.0,
+        "security": 1.0
+      }
+    },
+    "held_out_vms": {
+      "accuracy": 0.9868421052631579,
+      "top2_accuracy": 1.0,
+      "macro_f1": 0.9835941932716127,
+      "recall_by_cause": {
+        "disk_exhaustion": 1.0,
+        "storage_io": 1.0,
+        "network": 1.0,
+        "host": 0.8947368421052632,
+        "os_crash": 1.0,
+        "app": 1.0,
+        "security": 1.0
+      }
+    },
+    "majority_class_accuracy": 0.18421052631578946
+  },
+  "test_vms": [
+    "vm-000",
+    "vm-001",
+    "vm-002",
+    "vm-003",
+    "vm-005",
+    "vm-011",
+    "vm-014",
+    "vm-015",
+    "vm-022",
+    "vm-026",
+    "vm-030",
+    "vm-038",
+    "vm-044",
+    "vm-048",
+    "vm-053",
+    "vm-065",
+    "vm-072",
+    "vm-073",
+    "vm-074",
+    "vm-076",
+    "vm-077",
+    "vm-085",
+    "vm-086",
+    "vm-088",
+    "vm-089",
+    "vm-090",
+    "vm-092",
+    "vm-093",
+    "vm-095",
+    "vm-098",
+    "vm-099",
+    "vm-109",
+    "vm-113",
+    "vm-116",
+    "vm-119",
+    "vm-121",
+    "vm-124",
+    "vm-129",
+    "vm-130",
+    "vm-132",
+    "vm-135",
+    "vm-138",
+    "vm-142",
+    "vm-144",
+    "vm-145",
+    "vm-149",
+    "vm-150",
+    "vm-156",
+    "vm-160",
+    "vm-167",
+    "vm-173",
+    "vm-181",
+    "vm-182",
+    "vm-185",
+    "vm-186",
+    "vm-187",
+    "vm-189",
+    "vm-191",
+    "vm-192",
+    "vm-193"
+  ]
+}
